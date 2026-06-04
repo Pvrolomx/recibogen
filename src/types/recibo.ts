@@ -34,6 +34,7 @@ export interface ReciboData {
   notas?: string;
   idiomaDoc: IdiomaDoc;
   formato: FormatoDoc;
+  incluirFirma: boolean;
 }
 
 export const DEFAULT_RECIBO: ReciboData = {
@@ -47,6 +48,7 @@ export const DEFAULT_RECIBO: ReciboData = {
   notas: '',
   idiomaDoc: 'es-en',
   formato: 'pdf',
+  incluirFirma: true,
 };
 
 export const CONCEPTOS: Record<ConceptoKey, { es: string; en: string; fr: string }> = {
@@ -121,3 +123,12 @@ export const LABELS: Record<string, { es: string; en: string; fr: string }> = {
   firma: { es: 'Lic. Rolando Romero García', en: 'Lic. Rolando Romero García', fr: 'Lic. Rolando Romero García' },
   titulo: { es: 'Abogado / Asesor de Expatriados', en: 'Attorney / Expat Advisor', fr: 'Avocat / Conseiller aux expatriés' },
 };
+
+// Firma en base64 para incrustar en documentos
+export const FIRMA_BASE64 = `EOF
+
+# Agregar el base64 de la firma
+cat /home/claude/firma_base64.txt >> src/types/recibo.ts
+echo '`;' >> src/types/recibo.ts
+
+echo "✅ Tipos actualizados con firma"

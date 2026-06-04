@@ -14,13 +14,12 @@ export default function Home() {
     setGenerated(false);
   };
 
-  // Auto-save to localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem('recibogen_draft');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.data) setData(parsed.data);
+        if (parsed.data) setData({ ...DEFAULT_RECIBO, ...parsed.data });
       }
     } catch {}
   }, []);
@@ -124,7 +123,6 @@ export default function Home() {
             </select>
           </div>
 
-          {/* Campo custom si es "otro" */}
           {data.concepto === 'otro' && (
             <div>
               <label className="rg-label">Especificar concepto</label>
@@ -220,7 +218,7 @@ export default function Home() {
             />
           </div>
 
-          {/* Separador */}
+          {/* Separador - Opciones del documento */}
           <div className="border-t border-gray-100 pt-4">
             <p className="text-xs text-gray-400 uppercase tracking-wider mb-4">Opciones del documento</p>
             
@@ -260,7 +258,7 @@ export default function Home() {
             </div>
 
             {/* Formato */}
-            <div>
+            <div className="mb-4">
               <label className="rg-label">Formato de salida</label>
               <div className="rg-radio-group">
                 <div className="rg-radio-option">
@@ -278,6 +276,27 @@ export default function Home() {
                   <label htmlFor="formato-docx">📝 DOCX</label>
                 </div>
               </div>
+            </div>
+
+            {/* Toggle de Firma */}
+            <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Incluir firma</p>
+                <p className="text-xs text-gray-400">Agrega tu firma digitalizada al recibo</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => updateData({ incluirFirma: !data.incluirFirma })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  data.incluirFirma ? 'bg-brand-gold' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    data.incluirFirma ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>

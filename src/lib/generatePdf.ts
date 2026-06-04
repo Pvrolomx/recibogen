@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import type { ReciboData, IdiomaDoc } from '@/types/recibo';
-import { CONCEPTOS, METODOS_PAGO, LABELS } from '@/types/recibo';
+import { CONCEPTOS, METODOS_PAGO, LABELS, FIRMA_BASE64 } from '@/types/recibo';
 import { formatDate, formatMoney, generateReciboNumber } from './utils';
 
 type Lang = 'es' | 'en' | 'fr';
@@ -42,7 +42,7 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 25;
   const contentWidth = pageWidth - (margin * 2);
-  const colWidth = isBilingual ? contentWidth / 2 : contentWidth;
+  const labelWidth = 45;
   
   let y = margin;
   
@@ -60,7 +60,7 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   
   // Línea decorativa
   y += 10;
-  doc.setDrawColor(201, 168, 76); // Gold
+  doc.setDrawColor(201, 168, 76);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
   
@@ -77,7 +77,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   // Contenido
   y += 20;
   const rowHeight = 12;
-  const labelWidth = 45;
   
   function drawRow(
     label: { es: string; en: string; fr: string },
@@ -102,7 +101,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     
     // Columna 2 (si es bilingüe)
     if (isBilingual && value2 !== null) {
-      // Línea divisoria dorada
       doc.setDrawColor(201, 168, 76);
       doc.setLineWidth(0.3);
       doc.line(pageWidth / 2, y - 4, pageWidth / 2, y + rowHeight - 4);
@@ -151,13 +149,37 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     : LABELS.gracias[lang1];
   doc.text(gracias, pageWidth / 2, y, { align: 'center' });
   
-  // Firma
-  y += 25;
-  doc.setDrawColor(204, 204, 204);
-  doc.setLineWidth(0.3);
-  doc.line(pageWidth / 2 - 40, y, pageWidth / 2 + 40, y);
+  // Firma (imagen o línea)
+  y += 15;
   
-  y += 8;
+  if (data.incluirFirma) {
+    // Agregar imagen de firma
+    try {
+      doc.addImage(
+        `data:image/jpeg;base64,${FIRMA_BASE64}`,
+        'JPEG',
+        pageWidth / 2 - 25,
+        y,
+        50,
+        25
+      );
+      y += 30;
+    } catch (e) {
+      // Fallback a línea si falla la imagen
+      doc.setDrawColor(204, 204, 204);
+      doc.setLineWidth(0.3);
+      doc.line(pageWidth / 2 - 40, y + 10, pageWidth / 2 + 40, y + 10);
+      y += 18;
+    }
+  } else {
+    // Solo línea para firma manual
+    doc.setDrawColor(204, 204, 204);
+    doc.setLineWidth(0.3);
+    doc.line(pageWidth / 2 - 40, y + 10, pageWidth / 2 + 40, y + 10);
+    y += 18;
+  }
+  
+  // Nombre y título
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(26, 26, 26);

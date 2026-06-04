@@ -6,13 +6,14 @@ import {
   TableRow,
   TableCell,
   TextRun,
+  ImageRun,
   WidthType,
   BorderStyle,
   AlignmentType,
   convertInchesToTwip,
 } from 'docx';
 import type { ReciboData, IdiomaDoc } from '@/types/recibo';
-import { CONCEPTOS, METODOS_PAGO, LABELS } from '@/types/recibo';
+import { CONCEPTOS, METODOS_PAGO, LABELS, FIRMA_BASE64 } from '@/types/recibo';
 import { formatDate, formatMoney, generateReciboNumber } from './utils';
 
 type Lang = 'es' | 'en' | 'fr';
@@ -27,6 +28,15 @@ function getIdiomas(idiomaDoc: IdiomaDoc): [Lang, Lang | null] {
   }
 }
 
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 function bilingualRow(
   label: { es: string; en: string; fr: string },
   value1: string,
@@ -39,7 +49,6 @@ function bilingualRow(
   
   const cells: TableCell[] = [];
   
-  // Primera columna (siempre presente)
   cells.push(
     new TableCell({
       width: { size: lang2 ? 50 : 100, type: WidthType.PERCENTAGE },
@@ -62,7 +71,6 @@ function bilingualRow(
     })
   );
   
-  // Segunda columna (si es bilingüe)
   if (lang2 && value2 !== null) {
     cells.push(
       new TableCell({
@@ -108,27 +116,16 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
   
   const rows: TableRow[] = [];
   
-  // Número de recibo
   rows.push(bilingualRow(LABELS.numero, reciboNum, reciboNum, idiomas, { shade: true }));
-  
-  // Fecha
   rows.push(bilingualRow(
     LABELS.fecha, 
     formatDate(data.fechaPago, lang1), 
     lang2 ? formatDate(data.fechaPago, lang2) : null, 
     idiomas
   ));
-  
-  // Cliente
   rows.push(bilingualRow(LABELS.cliente, data.cliente, data.cliente, idiomas));
-  
-  // Concepto
   rows.push(bilingualRow(LABELS.concepto, conceptoText1, conceptoText2, idiomas));
-  
-  // Monto
   rows.push(bilingualRow(LABELS.monto, montoStr, montoStr, idiomas, { bold: true, size: 26, shade: true }));
-  
-  // Método de pago
   rows.push(bilingualRow(
     LABELS.metodo, 
     METODOS_PAGO[data.metodoPago][lang1], 
@@ -136,14 +133,46 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
     idiomas
   ));
   
-  // Referencia (si existe)
   if (data.referencia) {
     rows.push(bilingualRow(LABELS.referencia, data.referencia, data.referencia, idiomas));
   }
   
-  // Notas (si existen)
   if (data.notas) {
     rows.push(bilingualRow(LABELS.notas, data.notas, data.notas, idiomas));
+  }
+  
+  // Preparar elementos de firma
+  const firmaElements: Paragraph[] = [];
+  
+  if (data.incluirFirma) {
+    // Agregar imagen de firma
+    firmaElements.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 400 },
+        children: [
+          new ImageRun({
+            data: base64ToUint8Array(FIRMA_BASE64),
+            transformation: {
+              width: 150,
+              height: 75,
+            },
+            type: 'jpg',
+          }),
+        ],
+      })
+    );
+  } else {
+    // Solo línea para firma manual
+    firmaElements.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 600 },
+        children: [
+          new TextRun({ text: '________________________', size: 20, font: 'Arial', color: 'CCCCCC' }),
+        ],
+      })
+    );
   }
   
   const doc = new Document({
@@ -159,7 +188,7 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
         },
       },
       children: [
-        // Header - Logo/Title
+        // Header
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 200 },
@@ -187,7 +216,7 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
           ],
         }),
         
-        // Título del recibo
+        // Título
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 200, after: 400 },
@@ -204,14 +233,14 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
           ],
         }),
         
-        // Tabla principal
+        // Tabla
         new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           rows,
         }),
         
         // Espacio
-        new Paragraph({ spacing: { before: 600, after: 200 }, children: [] }),
+        new Paragraph({ spacing: { before: 400 }, children: [] }),
         
         // Gracias
         new Paragraph({
@@ -231,16 +260,12 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
         }),
         
         // Firma
+        ...firmaElements,
+        
+        // Nombre
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: 600 },
-          children: [
-            new TextRun({ text: '________________________', size: 20, font: 'Arial', color: 'CCCCCC' }),
-          ],
-        }),
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 100 },
+          spacing: { before: data.incluirFirma ? 100 : 100 },
           children: [
             new TextRun({ text: LABELS.firma.es, bold: true, size: 22, font: 'Arial' }),
           ],
