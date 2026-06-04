@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-gold: #C9A84C;
+  --brand-dark: #1a1a1a;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+  min-height: 100vh;
+}
+
+.rg-input {
+  @apply w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold transition-all;
+}
+
+.rg-select {
+  @apply w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:border-brand-gold transition-all bg-white appearance-none cursor-pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+.rg-label {
+  @apply block text-sm font-medium text-gray-600 mb-2;
+}
+
+.rg-btn-primary {
+  @apply w-full py-4 bg-brand-dark text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed;
+}
+
+.rg-btn-secondary {
+  @apply w-full py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors;
+}
+
+.rg-card {
+  @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+}
+
+.rg-radio-group {
+  @apply flex flex-wrap gap-2;
+}
+
+.rg-radio-option {
+  @apply flex-1 min-w-[100px];
+}
+
+.rg-radio-option input[type="radio"] {
+  @apply sr-only;
+}
+
+.rg-radio-option label {
+  @apply block w-full px-3 py-2 text-sm text-center border border-gray-200 rounded-lg cursor-pointer transition-all hover:border-brand-gold;
+}
+
+.rg-radio-option input[type="radio"]:checked + label {
+  @apply border-brand-gold bg-brand-gold/10 text-brand-dark font-medium;
+}
