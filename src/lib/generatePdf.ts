@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import type { ReciboData, IdiomaDoc } from '@/types/recibo';
-import { CONCEPTOS, METODOS_PAGO, LABELS, FIRMA_BASE64 } from '@/types/recibo';
+import { CONCEPTOS, METODOS_PAGO, LABELS, loadFirmaBase64 } from '@/types/recibo';
 import { formatDate, formatMoney, generateReciboNumber } from './utils';
 
 type Lang = 'es' | 'en' | 'fr';
@@ -20,6 +20,12 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   const [lang1, lang2] = idiomas;
   const reciboNum = generateReciboNumber();
   const isBilingual = lang2 !== null;
+  
+  // Cargar firma si es necesario
+  let firmaBase64 = '';
+  if (data.incluirFirma) {
+    firmaBase64 = await loadFirmaBase64();
+  }
   
   const conceptoText1 = data.concepto === 'otro' 
     ? (data.conceptoCustom || CONCEPTOS.otro[lang1])
@@ -58,13 +64,11 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   doc.setTextColor(102, 102, 102);
   doc.text('Puerto Vallarta · Riviera Nayarit', pageWidth / 2, y, { align: 'center' });
   
-  // Línea decorativa
   y += 10;
   doc.setDrawColor(201, 168, 76);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
   
-  // Título del recibo
   y += 15;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(14);
@@ -74,7 +78,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     : LABELS.recibo[lang1];
   doc.text(titulo, pageWidth / 2, y, { align: 'center' });
   
-  // Contenido
   y += 20;
   const rowHeight = 12;
   
@@ -89,7 +92,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
       doc.rect(margin, y - 4, contentWidth, rowHeight, 'F');
     }
     
-    // Columna 1
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(26, 26, 26);
@@ -99,7 +101,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     doc.setFontSize(highlight ? 12 : 10);
     doc.text(value1, margin + labelWidth, y + 2);
     
-    // Columna 2 (si es bilingüe)
     if (isBilingual && value2 !== null) {
       doc.setDrawColor(201, 168, 76);
       doc.setLineWidth(0.3);
@@ -115,7 +116,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
       doc.text(value2, pageWidth / 2 + labelWidth + 3, y + 2);
     }
     
-    // Línea inferior
     doc.setDrawColor(229, 229, 229);
     doc.setLineWidth(0.2);
     doc.line(margin, y + rowHeight - 4, pageWidth - margin, y + rowHeight - 4);
@@ -123,7 +123,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     y += rowHeight;
   }
   
-  // Filas de datos
   drawRow(LABELS.numero, reciboNum, reciboNum, true);
   drawRow(LABELS.fecha, formatDate(data.fechaPago, lang1), lang2 ? formatDate(data.fechaPago, lang2) : null);
   drawRow(LABELS.cliente, data.cliente, data.cliente);
@@ -139,7 +138,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     drawRow(LABELS.notas, data.notas, data.notas);
   }
   
-  // Gracias
   y += 20;
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(11);
@@ -149,14 +147,12 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     : LABELS.gracias[lang1];
   doc.text(gracias, pageWidth / 2, y, { align: 'center' });
   
-  // Firma (imagen o línea)
   y += 15;
   
-  if (data.incluirFirma) {
-    // Agregar imagen de firma
+  if (data.incluirFirma && firmaBase64) {
     try {
       doc.addImage(
-        `data:image/jpeg;base64,${FIRMA_BASE64}`,
+        `data:image/jpeg;base64,${firmaBase64}`,
         'JPEG',
         pageWidth / 2 - 25,
         y,
@@ -164,22 +160,19 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
         25
       );
       y += 30;
-    } catch (e) {
-      // Fallback a línea si falla la imagen
+    } catch {
       doc.setDrawColor(204, 204, 204);
       doc.setLineWidth(0.3);
       doc.line(pageWidth / 2 - 40, y + 10, pageWidth / 2 + 40, y + 10);
       y += 18;
     }
   } else {
-    // Solo línea para firma manual
     doc.setDrawColor(204, 204, 204);
     doc.setLineWidth(0.3);
     doc.line(pageWidth / 2 - 40, y + 10, pageWidth / 2 + 40, y + 10);
     y += 18;
   }
   
-  // Nombre y título
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(26, 26, 26);
@@ -194,7 +187,6 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     : LABELS.titulo[lang1];
   doc.text(titulo2, pageWidth / 2, y, { align: 'center' });
   
-  // Footer
   y = pageHeight - 15;
   doc.setFontSize(9);
   doc.setTextColor(201, 168, 76);

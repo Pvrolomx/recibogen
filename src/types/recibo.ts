@@ -124,11 +124,12 @@ export const LABELS: Record<string, { es: string; en: string; fr: string }> = {
   titulo: { es: 'Abogado / Asesor de Expatriados', en: 'Attorney / Expat Advisor', fr: 'Avocat / Conseiller aux expatriés' },
 };
 
-// Firma en base64 para incrustar en documentos
-export const FIRMA_BASE64 = `EOF
-
-# Agregar el base64 de la firma
-cat /home/claude/firma_base64.txt >> src/types/recibo.ts
-echo '`;' >> src/types/recibo.ts
-
-echo "✅ Tipos actualizados con firma"
+// Función para cargar la firma
+export async function loadFirmaBase64(): Promise<string> {
+  try {
+    const response = await fetch('/firma.b64');
+    return await response.text();
+  } catch {
+    return '';
+  }
+}

@@ -13,7 +13,7 @@ import {
   convertInchesToTwip,
 } from 'docx';
 import type { ReciboData, IdiomaDoc } from '@/types/recibo';
-import { CONCEPTOS, METODOS_PAGO, LABELS, FIRMA_BASE64 } from '@/types/recibo';
+import { CONCEPTOS, METODOS_PAGO, LABELS, loadFirmaBase64 } from '@/types/recibo';
 import { formatDate, formatMoney, generateReciboNumber } from './utils';
 
 type Lang = 'es' | 'en' | 'fr';
@@ -103,6 +103,12 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
   const [lang1, lang2] = idiomas;
   const reciboNum = generateReciboNumber();
   
+  // Cargar firma si es necesario
+  let firmaBase64 = '';
+  if (data.incluirFirma) {
+    firmaBase64 = await loadFirmaBase64();
+  }
+  
   const conceptoText1 = data.concepto === 'otro' 
     ? (data.conceptoCustom || CONCEPTOS.otro[lang1])
     : CONCEPTOS[data.concepto][lang1];
@@ -117,21 +123,11 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
   const rows: TableRow[] = [];
   
   rows.push(bilingualRow(LABELS.numero, reciboNum, reciboNum, idiomas, { shade: true }));
-  rows.push(bilingualRow(
-    LABELS.fecha, 
-    formatDate(data.fechaPago, lang1), 
-    lang2 ? formatDate(data.fechaPago, lang2) : null, 
-    idiomas
-  ));
+  rows.push(bilingualRow(LABELS.fecha, formatDate(data.fechaPago, lang1), lang2 ? formatDate(data.fechaPago, lang2) : null, idiomas));
   rows.push(bilingualRow(LABELS.cliente, data.cliente, data.cliente, idiomas));
   rows.push(bilingualRow(LABELS.concepto, conceptoText1, conceptoText2, idiomas));
   rows.push(bilingualRow(LABELS.monto, montoStr, montoStr, idiomas, { bold: true, size: 26, shade: true }));
-  rows.push(bilingualRow(
-    LABELS.metodo, 
-    METODOS_PAGO[data.metodoPago][lang1], 
-    lang2 ? METODOS_PAGO[data.metodoPago][lang2] : null, 
-    idiomas
-  ));
+  rows.push(bilingualRow(LABELS.metodo, METODOS_PAGO[data.metodoPago][lang1], lang2 ? METODOS_PAGO[data.metodoPago][lang2] : null, idiomas));
   
   if (data.referencia) {
     rows.push(bilingualRow(LABELS.referencia, data.referencia, data.referencia, idiomas));
@@ -141,29 +137,23 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
     rows.push(bilingualRow(LABELS.notas, data.notas, data.notas, idiomas));
   }
   
-  // Preparar elementos de firma
   const firmaElements: Paragraph[] = [];
   
-  if (data.incluirFirma) {
-    // Agregar imagen de firma
+  if (data.incluirFirma && firmaBase64) {
     firmaElements.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 400 },
         children: [
           new ImageRun({
-            data: base64ToUint8Array(FIRMA_BASE64),
-            transformation: {
-              width: 150,
-              height: 75,
-            },
+            data: base64ToUint8Array(firmaBase64),
+            transformation: { width: 150, height: 75 },
             type: 'jpg',
           }),
         ],
       })
     );
   } else {
-    // Solo línea para firma manual
     firmaElements.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
@@ -188,84 +178,46 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
         },
       },
       children: [
-        // Header
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 200 },
           children: [
-            new TextRun({ 
-              text: 'EXPAT ADVISOR MX', 
-              bold: true, 
-              size: 32, 
-              font: 'Arial',
-              color: '1a1a1a',
-            }),
+            new TextRun({ text: 'EXPAT ADVISOR MX', bold: true, size: 32, font: 'Arial', color: '1a1a1a' }),
           ],
         }),
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 400 },
           children: [
-            new TextRun({ 
-              text: 'Puerto Vallarta · Riviera Nayarit', 
-              size: 20, 
-              font: 'Arial',
-              color: '666666',
-              italics: true,
-            }),
+            new TextRun({ text: 'Puerto Vallarta · Riviera Nayarit', size: 20, font: 'Arial', color: '666666', italics: true }),
           ],
         }),
-        
-        // Título
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 200, after: 400 },
           children: [
             new TextRun({ 
-              text: lang2 
-                ? `${LABELS.recibo[lang1]} / ${LABELS.recibo[lang2]}`
-                : LABELS.recibo[lang1],
-              bold: true, 
-              size: 28, 
-              font: 'Arial',
-              color: 'C9A84C',
+              text: lang2 ? `${LABELS.recibo[lang1]} / ${LABELS.recibo[lang2]}` : LABELS.recibo[lang1],
+              bold: true, size: 28, font: 'Arial', color: 'C9A84C',
             }),
           ],
         }),
-        
-        // Tabla
-        new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows,
-        }),
-        
-        // Espacio
+        new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows }),
         new Paragraph({ spacing: { before: 400 }, children: [] }),
-        
-        // Gracias
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 400 },
           children: [
             new TextRun({ 
-              text: lang2 
-                ? `${LABELS.gracias[lang1]} / ${LABELS.gracias[lang2]}`
-                : LABELS.gracias[lang1],
-              size: 22, 
-              font: 'Arial',
-              italics: true,
-              color: '666666',
+              text: lang2 ? `${LABELS.gracias[lang1]} / ${LABELS.gracias[lang2]}` : LABELS.gracias[lang1],
+              size: 22, font: 'Arial', italics: true, color: '666666',
             }),
           ],
         }),
-        
-        // Firma
         ...firmaElements,
-        
-        // Nombre
         new Paragraph({
           alignment: AlignmentType.CENTER,
-          spacing: { before: data.incluirFirma ? 100 : 100 },
+          spacing: { before: 100 },
           children: [
             new TextRun({ text: LABELS.firma.es, bold: true, size: 22, font: 'Arial' }),
           ],
@@ -274,27 +226,16 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
           alignment: AlignmentType.CENTER,
           children: [
             new TextRun({ 
-              text: lang2 
-                ? `${LABELS.titulo[lang1]} / ${LABELS.titulo[lang2]}`
-                : LABELS.titulo[lang1],
-              size: 18, 
-              font: 'Arial',
-              color: '666666',
+              text: lang2 ? `${LABELS.titulo[lang1]} / ${LABELS.titulo[lang2]}` : LABELS.titulo[lang1],
+              size: 18, font: 'Arial', color: '666666',
             }),
           ],
         }),
-        
-        // Footer
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 600 },
           children: [
-            new TextRun({ 
-              text: 'expatadvisormx.com', 
-              size: 16, 
-              font: 'Arial',
-              color: 'C9A84C',
-            }),
+            new TextRun({ text: 'expatadvisormx.com', size: 16, font: 'Arial', color: 'C9A84C' }),
           ],
         }),
       ],
