@@ -1,6 +1,7 @@
 export type Idioma = 'es' | 'en' | 'fr';
 export type IdiomaDoc = 'es-en' | 'es-fr' | 'en' | 'fr';
 export type FormatoDoc = 'docx' | 'pdf';
+export type Lugar = 'puerto_vallarta' | 'riviera_nayarit';
 
 export type MetodoPago = 
   | 'zelle'
@@ -24,6 +25,7 @@ export type ConceptoKey =
 
 export interface ReciboData {
   cliente: string;
+  lugar: Lugar;
   concepto: ConceptoKey;
   conceptoCustom?: string;
   monto: number;
@@ -39,6 +41,7 @@ export interface ReciboData {
 
 export const DEFAULT_RECIBO: ReciboData = {
   cliente: '',
+  lugar: 'puerto_vallarta',
   concepto: 'consultoria_legal',
   monto: 0,
   moneda: 'USD',
@@ -49,6 +52,19 @@ export const DEFAULT_RECIBO: ReciboData = {
   idiomaDoc: 'es-en',
   formato: 'pdf',
   incluirFirma: true,
+};
+
+export const LUGARES: Record<Lugar, { es: string; en: string; fr: string }> = {
+  puerto_vallarta: {
+    es: 'Puerto Vallarta, Jalisco',
+    en: 'Puerto Vallarta, Jalisco',
+    fr: 'Puerto Vallarta, Jalisco',
+  },
+  riviera_nayarit: {
+    es: 'Riviera Nayarit',
+    en: 'Riviera Nayarit',
+    fr: 'Riviera Nayarit',
+  },
 };
 
 export const CONCEPTOS: Record<ConceptoKey, { es: string; en: string; fr: string }> = {
@@ -107,7 +123,7 @@ export const METODOS_PAGO: Record<MetodoPago, { es: string; en: string; fr: stri
 
 export const LABELS: Record<string, { es: string; en: string; fr: string }> = {
   recibo: { es: 'RECIBO DE PAGO', en: 'PAYMENT RECEIPT', fr: 'REÇU DE PAIEMENT' },
-  numero: { es: 'Recibo No.', en: 'Receipt No.', fr: 'Reçu Nº' },
+  lugar: { es: 'Lugar', en: 'Place', fr: 'Lieu' },
   fecha: { es: 'Fecha', en: 'Date', fr: 'Date' },
   cliente: { es: 'Recibido de', en: 'Received from', fr: 'Reçu de' },
   concepto: { es: 'Concepto', en: 'Concept', fr: 'Objet' },
@@ -124,7 +140,6 @@ export const LABELS: Record<string, { es: string; en: string; fr: string }> = {
   titulo: { es: 'Abogado / Asesor de Expatriados', en: 'Attorney / Expat Advisor', fr: 'Avocat / Conseiller aux expatriés' },
 };
 
-// Función para cargar la firma
 export async function loadFirmaBase64(): Promise<string> {
   try {
     const response = await fetch('/firma.b64');

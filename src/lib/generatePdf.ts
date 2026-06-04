@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import type { ReciboData, IdiomaDoc } from '@/types/recibo';
-import { CONCEPTOS, METODOS_PAGO, LABELS, loadFirmaBase64 } from '@/types/recibo';
-import { formatDate, formatMoney, generateReciboNumber } from './utils';
+import { CONCEPTOS, METODOS_PAGO, LABELS, LUGARES, loadFirmaBase64 } from '@/types/recibo';
+import { formatDate, formatMoney } from './utils';
 
 type Lang = 'es' | 'en' | 'fr';
 
@@ -18,10 +18,8 @@ function getIdiomas(idiomaDoc: IdiomaDoc): [Lang, Lang | null] {
 export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   const idiomas = getIdiomas(data.idiomaDoc);
   const [lang1, lang2] = idiomas;
-  const reciboNum = generateReciboNumber();
   const isBilingual = lang2 !== null;
   
-  // Cargar firma si es necesario
   let firmaBase64 = '';
   if (data.incluirFirma) {
     firmaBase64 = await loadFirmaBase64();
@@ -123,7 +121,8 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     y += rowHeight;
   }
   
-  drawRow(LABELS.numero, reciboNum, reciboNum, true);
+  // Lugar en vez de número
+  drawRow(LABELS.lugar, LUGARES[data.lugar][lang1], lang2 ? LUGARES[data.lugar][lang2] : null, true);
   drawRow(LABELS.fecha, formatDate(data.fechaPago, lang1), lang2 ? formatDate(data.fechaPago, lang2) : null);
   drawRow(LABELS.cliente, data.cliente, data.cliente);
   drawRow(LABELS.concepto, conceptoText1, conceptoText2);

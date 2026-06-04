@@ -13,8 +13,8 @@ import {
   convertInchesToTwip,
 } from 'docx';
 import type { ReciboData, IdiomaDoc } from '@/types/recibo';
-import { CONCEPTOS, METODOS_PAGO, LABELS, loadFirmaBase64 } from '@/types/recibo';
-import { formatDate, formatMoney, generateReciboNumber } from './utils';
+import { CONCEPTOS, METODOS_PAGO, LABELS, LUGARES, loadFirmaBase64 } from '@/types/recibo';
+import { formatDate, formatMoney } from './utils';
 
 type Lang = 'es' | 'en' | 'fr';
 
@@ -101,9 +101,7 @@ function bilingualRow(
 export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
   const idiomas = getIdiomas(data.idiomaDoc);
   const [lang1, lang2] = idiomas;
-  const reciboNum = generateReciboNumber();
   
-  // Cargar firma si es necesario
   let firmaBase64 = '';
   if (data.incluirFirma) {
     firmaBase64 = await loadFirmaBase64();
@@ -122,7 +120,8 @@ export async function generateReciboDocx(data: ReciboData): Promise<Blob> {
   
   const rows: TableRow[] = [];
   
-  rows.push(bilingualRow(LABELS.numero, reciboNum, reciboNum, idiomas, { shade: true }));
+  // Lugar en vez de número
+  rows.push(bilingualRow(LABELS.lugar, LUGARES[data.lugar][lang1], lang2 ? LUGARES[data.lugar][lang2] : null, idiomas, { shade: true }));
   rows.push(bilingualRow(LABELS.fecha, formatDate(data.fechaPago, lang1), lang2 ? formatDate(data.fechaPago, lang2) : null, idiomas));
   rows.push(bilingualRow(LABELS.cliente, data.cliente, data.cliente, idiomas));
   rows.push(bilingualRow(LABELS.concepto, conceptoText1, conceptoText2, idiomas));

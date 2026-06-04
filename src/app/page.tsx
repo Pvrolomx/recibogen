@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { ReciboData, ConceptoKey, MetodoPago, IdiomaDoc, FormatoDoc } from '@/types/recibo';
-import { DEFAULT_RECIBO, CONCEPTOS, METODOS_PAGO } from '@/types/recibo';
+import type { ReciboData, ConceptoKey, MetodoPago, IdiomaDoc, FormatoDoc, Lugar } from '@/types/recibo';
+import { DEFAULT_RECIBO, CONCEPTOS, METODOS_PAGO, LUGARES } from '@/types/recibo';
 
 export default function Home() {
   const [data, setData] = useState<ReciboData>(DEFAULT_RECIBO);
@@ -105,6 +105,26 @@ export default function Home() {
               value={data.cliente}
               onChange={(e) => updateData({ cliente: e.target.value })}
             />
+          </div>
+
+          {/* Lugar */}
+          <div>
+            <label className="rg-label">Lugar / Place</label>
+            <div className="rg-radio-group">
+              {Object.entries(LUGARES).map(([key, labels]) => (
+                <div key={key} className="rg-radio-option">
+                  <input
+                    type="radio"
+                    id={`lugar-${key}`}
+                    name="lugar"
+                    value={key}
+                    checked={data.lugar === key}
+                    onChange={() => updateData({ lugar: key as Lugar })}
+                  />
+                  <label htmlFor={`lugar-${key}`}>{labels.es}</label>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Concepto */}
