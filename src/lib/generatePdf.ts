@@ -48,7 +48,7 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 25;
   const contentWidth = pageWidth - (margin * 2);
-  const labelWidth = 28;
+  const labelWidth = 38;
   
   let y = margin;
   
