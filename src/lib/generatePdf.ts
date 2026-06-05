@@ -53,7 +53,7 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   let y = margin;
   
   // Logo a la izquierda (proporciones correctas: 464x256 = 1.81 ratio)
-  const logoWidth = 35;  // mm
+  const logoWidth = 42;  // mm
   const logoHeight = logoWidth / 1.81;  // ~19.3mm manteniendo proporción
   
   if (logoBase64) {
