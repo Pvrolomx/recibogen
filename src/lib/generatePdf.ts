@@ -52,42 +52,40 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   
   let y = margin;
   
-  // Header con logo
-  const logoSize = 22;
-  const headerCenterX = pageWidth / 2;
+  // Logo a la izquierda (proporciones correctas: 464x256 = 1.81 ratio)
+  const logoWidth = 35;  // mm
+  const logoHeight = logoWidth / 1.81;  // ~19.3mm manteniendo proporción
   
-  // Logo a la izquierda
   if (logoBase64) {
     try {
       doc.addImage(
         `data:image/jpeg;base64,${logoBase64}`,
         'JPEG',
         margin,
-        y - 5,
-        logoSize,
-        logoSize
+        y - 3,
+        logoWidth,
+        logoHeight
       );
     } catch (e) {
       console.error('Error adding logo:', e);
     }
   }
   
-  // Texto del header (centrado o ligeramente a la derecha del logo)
-  const textStartX = logoBase64 ? margin + logoSize + 10 : margin;
-  const textCenterX = logoBase64 ? (textStartX + pageWidth - margin) / 2 : headerCenterX;
-  
+  // Texto del header - SIEMPRE centrado en la página (no relativo al logo)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(26, 26, 26);
-  doc.text('EXPAT ADVISOR MX', textCenterX, y + 3, { align: 'center' });
+  doc.text('EXPAT ADVISOR MX', pageWidth / 2, y + 3, { align: 'center' });
   
   y += 10;
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(10);
   doc.setTextColor(102, 102, 102);
-  doc.text('Puerto Vallarta · Riviera Nayarit', textCenterX, y, { align: 'center' });
+  doc.text('Puerto Vallarta · Riviera Nayarit', pageWidth / 2, y, { align: 'center' });
   
-  y += 12;
+  // Ajustar Y después del header (considerar altura del logo)
+  y = margin + Math.max(logoHeight, 15) + 8;
+  
   doc.setDrawColor(201, 168, 76);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
