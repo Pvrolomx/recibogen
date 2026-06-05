@@ -46,7 +46,8 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 25;
   const contentWidth = pageWidth - (margin * 2);
-  const labelWidth = 45;
+  const labelWidth = 28; // Reducido para etiquetas cortas
+  const colWidth = (contentWidth - 4) / 2; // Ancho de cada columna en bilingüe
   
   let y = margin;
   
@@ -83,37 +84,49 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     label: { es: string; en: string; fr: string },
     value1: string,
     value2: string | null,
-    highlight: boolean = false
+    opts: { highlight?: boolean; shade?: boolean } = {}
   ) {
-    if (highlight) {
+    const { highlight = false, shade = false } = opts;
+    
+    // Fondo sombreado opcional
+    if (shade) {
       doc.setFillColor(245, 245, 245);
       doc.rect(margin, y - 4, contentWidth, rowHeight, 'F');
     }
     
+    // Columna 1: Label (siempre bold)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(26, 26, 26);
     doc.text(label[lang1] + ':', margin + 2, y + 2);
     
+    // Columna 1: Value (bold solo si highlight)
     doc.setFont('helvetica', highlight ? 'bold' : 'normal');
     doc.setFontSize(highlight ? 12 : 10);
     doc.text(value1, margin + labelWidth, y + 2);
     
+    // Columna 2 (bilingüe)
     if (isBilingual && value2 !== null) {
+      const col2Start = pageWidth / 2 + 2;
+      
+      // Línea divisoria dorada
       doc.setDrawColor(201, 168, 76);
       doc.setLineWidth(0.3);
       doc.line(pageWidth / 2, y - 4, pageWidth / 2, y + rowHeight - 4);
       
+      // Label columna 2 (siempre bold)
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(10);
       doc.setTextColor(26, 26, 26);
-      doc.text(label[lang2!] + ':', pageWidth / 2 + 5, y + 2);
+      doc.text(label[lang2!] + ':', col2Start, y + 2);
       
+      // Value columna 2 (bold solo si highlight)
       doc.setFont('helvetica', highlight ? 'bold' : 'normal');
       doc.setFontSize(highlight ? 12 : 10);
-      doc.text(value2, pageWidth / 2 + labelWidth + 3, y + 2);
+      doc.text(value2, col2Start + labelWidth, y + 2);
     }
     
+    // Línea inferior
     doc.setDrawColor(229, 229, 229);
     doc.setLineWidth(0.2);
     doc.line(margin, y + rowHeight - 4, pageWidth - margin, y + rowHeight - 4);
@@ -121,12 +134,13 @@ export async function generateReciboPdf(data: ReciboData): Promise<Blob> {
     y += rowHeight;
   }
   
-  // Lugar en vez de número
-  drawRow(LABELS.lugar, LUGARES[data.lugar][lang1], lang2 ? LUGARES[data.lugar][lang2] : null, true);
+  // Filas de datos - Lugar solo con shade, NO highlight
+  drawRow(LABELS.lugar, LUGARES[data.lugar][lang1], lang2 ? LUGARES[data.lugar][lang2] : null, { shade: true });
   drawRow(LABELS.fecha, formatDate(data.fechaPago, lang1), lang2 ? formatDate(data.fechaPago, lang2) : null);
   drawRow(LABELS.cliente, data.cliente, data.cliente);
   drawRow(LABELS.concepto, conceptoText1, conceptoText2);
-  drawRow(LABELS.monto, montoStr, montoStr, true);
+  // Monto SI con highlight (bold y más grande)
+  drawRow(LABELS.monto, montoStr, montoStr, { highlight: true, shade: true });
   drawRow(LABELS.metodo, METODOS_PAGO[data.metodoPago][lang1], lang2 ? METODOS_PAGO[data.metodoPago][lang2] : null);
   
   if (data.referencia) {
