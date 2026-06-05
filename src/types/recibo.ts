@@ -148,3 +148,12 @@ export async function loadFirmaBase64(): Promise<string> {
     return '';
   }
 }
+
+export async function loadLogoBase64(): Promise<string> {
+  try {
+    const response = await fetch('/logo.b64');
+    return await response.text();
+  } catch {
+    return '';
+  }
+}
